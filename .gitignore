@@ -24,4 +24,5 @@ hs_err_pid*
 
 .clover
 *.iml
-
+target
+.idea
