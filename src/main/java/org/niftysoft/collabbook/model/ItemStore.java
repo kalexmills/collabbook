@@ -270,46 +270,55 @@ public class ItemStore {
 
             long maxId = 0L;
             for (String itemToken : itemTokens) {
-                String[] dataTokens = itemToken.split("\\n");
 
-                int i = 0;
-                long id = Long.valueOf(dataTokens[i++]);
-                maxId = Math.max(id, maxId);
-
-                Item item;
-                String typeToken = dataTokens[i++];
-                if (typeToken.charAt(0) == 'N') {
-                    item = new Note(id);
-                } else if (typeToken.charAt(0) == 'T') {
-                    item = new Task(id);
-                    ((Task) item).setCompleted(dataTokens[i++].charAt(0) == 'T');
-                } else {
-                    throw new IllegalStateException("Unexpected type ID encountered: " + dataTokens[1]);
-                }
-                item.setStarred(dataTokens[i++].charAt(0) == 'T');
-                item.setDate(LocalDateTime.parse(dataTokens[i++]));
-                item.setDescription(dataTokens[i++]);
-
-
+                Item item = readItem(itemToken);
+                maxId = Math.max(item.getId(), maxId);
                 items.put(item.getId(), item);
             }
             return maxId;
+        }
+
+        private static Item readItem(String itemToken) {
+            Item item;
+            String[] dataTokens = itemToken.split("\\n");
+
+            int i = 0;
+            long id = Long.valueOf(dataTokens[i++]);
+
+            String typeToken = dataTokens[i++];
+            if (typeToken.charAt(0) == 'N') {
+                item = new Note(id);
+            } else if (typeToken.charAt(0) == 'T') {
+                item = new Task(id);
+                ((Task) item).setCompleted(dataTokens[i++].charAt(0) == 'T');
+            } else {
+                throw new IllegalStateException("Unexpected type ID encountered: " + dataTokens[1]);
+            }
+            item.setStarred(dataTokens[i++].charAt(0) == 'T');
+            item.setDate(LocalDateTime.parse(dataTokens[i++]));
+            item.setDescription(dataTokens[i++]);
+
+            return item;
         }
 
         private static void readBoards(SortedMap<String, SortedSet<Long>> boards, String str) {
             String[] boardTokens = str.split("---\\n");
 
             for (String boardToken : boardTokens) {
-                String[] dataTokens = boardToken.split("\\n");
-
-                String boardName = dataTokens[0];
-
-                SortedSet<Long> idSet = new TreeSet<>();
-                for (int i = 1; i < dataTokens.length; ++i) {
-                    idSet.add(Long.valueOf(dataTokens[i]));
-                }
-                boards.put(boardName, idSet);
+                readBoard(boards, boardToken);
             }
+        }
+
+        private static void readBoard(SortedMap<String, SortedSet<Long>> boards, String boardToken) {
+            String[] dataTokens = boardToken.split("\\n");
+
+            String boardName = dataTokens[0];
+
+            SortedSet<Long> idSet = new TreeSet<>();
+            for (int i = 1; i < dataTokens.length; ++i) {
+                idSet.add(Long.valueOf(dataTokens[i]));
+            }
+            boards.put(boardName, idSet);
         }
     }
 }
