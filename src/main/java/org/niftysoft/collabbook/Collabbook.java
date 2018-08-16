@@ -71,7 +71,7 @@ public class Collabbook implements Callable<Void>  {
         store.setCmdContext(cmd.commandLine());
 
         // First... compile the view. this object will be used by all other commands.
-        ArrayList<String> boards = new ArrayList<>(store.getBoards());
+        List<String> boards = new ArrayList<>(store.getBoards());
 
         boards.removeAll(Arrays.asList(ItemStore.ARCHIVE_BOARD, ItemStore.DEFAULT_BOARD));
         boards.add(0, ItemStore.DEFAULT_BOARD);
@@ -79,16 +79,7 @@ public class Collabbook implements Callable<Void>  {
         initializeView(boards);
 
         if (!cmd.commandLine().getParseResult().hasSubcommand()) {
-            // If no subcommand has been requested, show the present state of the tasks
-            if (!boards.isEmpty() && !store.itemsInBoards(boards.toArray(new String[0])).isEmpty()) {
-                System.out.println();
-                showItemsInBoards(boards);
-                showSummaryFooter();
-            } else {
-                System.out.println();
-                ResponseUtil.success("\\(^_^)/", "All done!");
-                System.out.println();
-            }
+            showPendingTasks(boards);
         }
         return null;
     }
@@ -116,6 +107,19 @@ public class Collabbook implements Callable<Void>  {
         view.setNumComplete(nComplete);
         view.setNumTasks(nTasks);
         view.setNumNotes(nNotes);
+    }
+
+    private void showPendingTasks(List<String> boards) {
+        // If no subcommand has been requested, show the present state of the tasks
+        if (!boards.isEmpty() && !store.itemsInBoards(boards.toArray(new String[0])).isEmpty()) {
+            System.out.println();
+            showItemsInBoards(boards);
+            showSummaryFooter();
+        } else {
+            System.out.println();
+            ResponseUtil.success("\\(^_^)/", "All done!");
+            System.out.println();
+        }
     }
 
     private void showItemsInBoards(List<String> boards) {
