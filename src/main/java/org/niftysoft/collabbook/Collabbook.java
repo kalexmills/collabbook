@@ -8,6 +8,7 @@ import org.niftysoft.collabbook.model.Item;
 import org.niftysoft.collabbook.model.ItemStore;
 import org.niftysoft.collabbook.model.Task;
 import org.niftysoft.collabbook.util.ItemUtil;
+import org.niftysoft.collabbook.util.ResponseUtil;
 import picocli.CommandLine;
 import picocli.CommandLine.*;
 
@@ -18,7 +19,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-import static org.fusesource.jansi.Ansi.ansi;
 import static org.niftysoft.collabbook.util.AnsiUtil.*;
 import static org.niftysoft.collabbook.util.ItemUtil.isTask;
 
@@ -26,22 +26,19 @@ import static org.niftysoft.collabbook.util.ItemUtil.isTask;
          name="cb", mixinStandardHelpOptions = true, version="")
 public class Collabbook implements Callable<Void>  {
 
+    // TODO: Make this configurable
+    private static final Path FILESTORE_PATH = Paths.get(".collabbook");
+
     @CommandLine.Spec
     private CommandLine.Model.CommandSpec cmd;
 
-    private Map<Integer, Item> view;
+    private ViewModel view;
 
     private ItemStore store;
 
     public Collabbook(ItemStore store) {
         this.store = store;
     }
-
-    public Map<Integer, Item> getView() {
-        return view;
-    }
-
-    private static final Path FILESTORE_PATH = Paths.get(".collabbook");
 
     public static void main(String[] args) throws Exception {
 
@@ -73,61 +70,85 @@ public class Collabbook implements Callable<Void>  {
     public Void call() {
         store.setCmdContext(cmd.commandLine());
 
+        // First... compile the view. this object will be used by all other commands.
+        ArrayList<String> boards = new ArrayList<>(store.getBoards());
+
+        boards.removeAll(Arrays.asList(ItemStore.ARCHIVE_BOARD, ItemStore.DEFAULT_BOARD));
+        boards.add(0, ItemStore.DEFAULT_BOARD);
+
+        initializeView(boards);
+
         if (!cmd.commandLine().getParseResult().hasSubcommand()) {
-            ArrayList<String> boardsToShow = new ArrayList<>(store.getBoards());
-
-            boardsToShow.removeAll(Arrays.asList(ItemStore.ARCHIVE_BOARD, ItemStore.DEFAULT_BOARD));
-            boardsToShow.add(0, ItemStore.DEFAULT_BOARD);
-
-            if (!boardsToShow.isEmpty() && !store.itemsInBoards(boardsToShow.toArray(new String[0])).isEmpty()) {
+            // If no subcommand has been requested, show the present state of the tasks
+            if (!boards.isEmpty() && !store.itemsInBoards(boards.toArray(new String[0])).isEmpty()) {
                 System.out.println();
-                showTasksInBoards(boardsToShow);
+                showItemsInBoards(boards);
+                showSummaryFooter();
             } else {
                 System.out.println();
-                System.out.println(yellow("  All done!") + white("  ^_^"));
+                ResponseUtil.success("\\(^_^)/", "All done!");
                 System.out.println();
             }
         }
         return null;
     }
 
-    private void showTasksInBoards(List<String> boards) {
+    private void initializeView(List<String> boards) {
+        view = new ViewModel();
+        int nComplete = 0, nTasks = 0, nNotes = 0;
         int i = 1;
-        int nCompleteTasks = 0, nTasks = 0, nNotes = 0;
-        view = new HashMap<>();
+        for (String board : boards) {
+            List<Item> items = store.itemsInBoards(board);
+            if (!items.isEmpty()) {
+                for (Item item : store.itemsInBoards(board)) {
+                    view.getItemIdToViewId().put(item.getId(), i);
+                    view.getViewIdToItem().put(i++, item);
+
+                    if (isTask(item)) {
+                        if (((Task) item).isCompleted()) nComplete++;
+                        nTasks++;
+                    } else {
+                        nNotes++;
+                    }
+                }
+            }
+        }
+        view.setNumComplete(nComplete);
+        view.setNumTasks(nTasks);
+        view.setNumNotes(nNotes);
+    }
+
+    private void showItemsInBoards(List<String> boards) {
+        // TODO: Cleanup & make use of view properly.
         for (String board : boards) {
             List<Item> items = store.itemsInBoards(board);
             if (!items.isEmpty()) {
                 List<String> tasks = new LinkedList<>();
                 int tasksInBoard = 0; int completeInBoard = 0;
                 for (Item item : store.itemsInBoards(board)) {
-                    view.put(i, item);
-                    tasks.add("  " + grey(String.format("%4d.", i++)) + " " + checkbox(item) + " " + description(item));
-
-                    if (isTask(item)) {
-                        tasksInBoard++;
-                        if (((Task) item).isCompleted()) completeInBoard++;
-                    } else {
-                        nNotes++;
-                    }
+                    int viewId = view.getItemIdToViewId().get(item.getId());
+                    tasks.add("  " + grey(String.format("%4d.", viewId)) + " " + checkbox(item) + " " + description(item));
                 }
                 showBoardHeading(board, completeInBoard, tasksInBoard);
                 tasks.forEach(System.out::println);
                 System.out.println();
-
-                nCompleteTasks += completeInBoard;
-                nTasks += tasksInBoard;
             }
         }
+    }
 
-        System.out.printf("  %d%% of all tasks complete.\n", (int)((100.0*nCompleteTasks) / (1.0*nTasks)));
+    private void showSummaryFooter() {
+        int done = view.getNumComplete();
+        int pending = view.getNumTasks() - view.getNumComplete();
+        int notes = view.getNumNotes();
+        int tasks = view.getNumTasks();
+
+        System.out.printf("  %d%% of all tasks complete.\n", (int)((100.0 * done) / (1.0 * tasks)));
         System.out.println("  " + String.join(grey(" - "), new String[] {
-                green(""   + nCompleteTasks)            + grey(" done"),
-                yellow("" + (nTasks - nCompleteTasks)) + grey(" pending"),
-                blue(""    + nNotes)                    + grey(" notes"),
+                green(""  + done)            + grey(" done"),
+                yellow("" + pending) + grey(" pending"),
+                blue(""   + notes)                    + grey(" notes"),
         }));
         System.out.println();
-
     }
 
     private String checkbox(Item i) {
@@ -148,4 +169,8 @@ public class Collabbook implements Callable<Void>  {
         System.out.println("  " + white(board) + " " + grey("[" + complete + "/" + total + "]"));
     }
 
+
+    public ViewModel getView() {
+        return view;
+    }
 }
