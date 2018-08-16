@@ -10,7 +10,7 @@ import picocli.CommandLine;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.niftysoft.collabbook.util.ColorUtil.white;
+import static org.niftysoft.collabbook.util.AnsiUtil.white;
 
 public abstract class ItemCreateCommand implements Callable<Void> {
     @CommandLine.Spec

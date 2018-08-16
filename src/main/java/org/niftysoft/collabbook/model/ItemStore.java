@@ -1,5 +1,6 @@
 package org.niftysoft.collabbook.model;
 
+import org.niftysoft.collabbook.exceptions.BoardNotFoundException;
 import org.niftysoft.collabbook.exceptions.ItemNotFoundException;
 import org.niftysoft.collabbook.exceptions.WrongTypeException;
 import picocli.CommandLine;
@@ -12,10 +13,11 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ItemStore {
-    private static final String DEFAULT_BOARD = "default";
-    private static final String ARCHIVE_BOARD = "archive";
+    public static final String DEFAULT_BOARD = "My Board";
+    public static final String ARCHIVE_BOARD = "archive";
 
     private long nextId;
 
@@ -65,6 +67,10 @@ public class ItemStore {
         t.setCompleted(!t.isCompleted());
     }
 
+    public Set<String> getBoards() {
+        return Collections.unmodifiableSet(boards.keySet());
+    }
+
     /**
      * @param id long item id to remove.
      * @return Item the deleted item, or null if no item was deleted.
@@ -81,19 +87,42 @@ public class ItemStore {
         result.sort(Comparator.comparing((i) -> i.getDate()));
         return result;
     }
+
+    /**
+     * @param boardArr String... board name(s)
+     * @return List<Item> the items contained in the requested board.
+     * @throws BoardNotFoundException
+     */
+    public List<Item> itemsInBoards(String... boardArr) throws BoardNotFoundException {
+        List<String> boardList = new LinkedList<String>(Arrays.asList(boardArr));
+        boardList.removeIf((board) -> !boards.keySet().contains(board));
+        if (boardList.isEmpty())
+            throw new BoardNotFoundException(cmd, String.join(",", boardArr));
+
+        return boardList.stream()
+                .map((board) -> boards.get(board))
+                .flatMap(set -> set.stream())
+                .map(id -> items.get(id))
+                .collect(Collectors.toList());
+    }
+
     /**
      * Creates a new item, setting its ID, storing it in the local store, and adding it to all specified boards.
      * @param description String description of the task.
      * @return Note the item which was created.
      */
-    public Note createNote(String description, Iterable<String> boards) {
+    public Note createNote(String description, Collection<String> boards) {
         Note result = newNote();
         result.setDescription(description);
 
         items.put(result.getId(), result);
 
-        for (String boardName : boards) {
-            addItemToBoard(result.getId(), boardName);
+        if (boards.isEmpty())
+            addItemToBoard(result.getId(), DEFAULT_BOARD);
+        else {
+            for (String boardName : boards) {
+                addItemToBoard(result.getId(), boardName);
+            }
         }
 
         return result;
@@ -104,17 +133,25 @@ public class ItemStore {
      * @param description String description of the task.
      * @return Task the item which was created.
      */
-    public Task createTask(String description, Iterable<String> boards) {
+    public Task createTask(String description, Collection<String> boards) {
         Task result = newTask();
         result.setDescription(description);
 
         items.put(result.getId(), result);
 
-        for (String boardName : boards) {
-            addItemToBoard(result.getId(), boardName);
+        if (boards.isEmpty())
+            addItemToBoard(result.getId(), DEFAULT_BOARD);
+        else {
+            for (String boardName : boards) {
+                addItemToBoard(result.getId(), boardName);
+            }
         }
 
         return result;
+    }
+
+    public int numActiveItems() {
+        return items.size() - boards.get(ARCHIVE_BOARD).size();
     }
 
     /**
@@ -151,49 +188,55 @@ public class ItemStore {
             try (BufferedWriter w = Files.newBufferedWriter(pathToWrite, StandardOpenOption.TRUNCATE_EXISTING)) {
                 StringBuilder b = new StringBuilder();
 
-                for (Item item : store.items.values()){
-                    // ID
-                    b.append(item.getId()).append('\n');
-
-                    // Type ID
-                    if (item.getClass().equals(Note.class)) {
-                        b.append('N');
-                    } else if (item.getClass().equals(Task.class)) {
-                        b.append('T');
-                        // isCompleted
-                        b.append('\n');
-                        b.append(((Task)item).isCompleted() ? 'T' : 'F');
-                    } else {
-                        throw new IllegalStateException("Unexpected subclass of item encountered" + item.getClass().getCanonicalName());
-                    }
-                    b.append('\n');
-
-                    // isStarred
-                    b.append(item.isStarred() ? 'T' : 'F').append('\n');
-
-                    // Date
-                    b.append(item.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append('\n');
-
-                    // Description
-                    b.append(item.getDescription()).append('\n');
-
-                    b.append("---\n");
-                }
-
+                writeItems(store.items.values(), b);
                 b.append("=====\n");
-
-                for (Map.Entry<String, SortedSet<Long>> entry : store.boards.entrySet()) {
-                    // Board name
-                    b.append(entry.getKey()).append('\n');
-
-                    // List of IDs contained in board.
-                    for (long id : entry.getValue()) {
-                        b.append(id).append('\n');
-                    }
-                    b.append("---\n");
-                }
+                writeBoards(store.boards, b);
 
                 w.write(b.toString());
+            }
+        }
+
+        private static void writeItems(Iterable<Item> items, StringBuilder b) {
+            for (Item item : items){
+                // ID
+                b.append(item.getId()).append('\n');
+
+                // Type ID
+                if (item.getClass().equals(Note.class)) {
+                    b.append('N');
+                } else if (item.getClass().equals(Task.class)) {
+                    b.append('T');
+                    // isCompleted
+                    b.append('\n');
+                    b.append(((Task)item).isCompleted() ? 'T' : 'F');
+                } else {
+                    throw new IllegalStateException("Unexpected subclass of item encountered" + item.getClass().getCanonicalName());
+                }
+                b.append('\n');
+
+                // isStarred
+                b.append(item.isStarred() ? 'T' : 'F').append('\n');
+
+                // Date
+                b.append(item.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append('\n');
+
+                // Description
+                b.append(item.getDescription()).append('\n');
+
+                b.append("---\n");
+            }
+        }
+
+        private static void writeBoards(SortedMap<String, SortedSet<Long>> boards, StringBuilder b) {
+            for (Map.Entry<String, SortedSet<Long>> entry : boards.entrySet()) {
+                // Board name
+                b.append(entry.getKey()).append('\n');
+
+                // List of IDs contained in board.
+                for (long id : entry.getValue()) {
+                    b.append(id).append('\n');
+                }
+                b.append("---\n");
             }
         }
     }
@@ -213,6 +256,7 @@ public class ItemStore {
 
             try {
                 long maxId = readItems(store.items, objects[0]);
+
                 store.nextId = maxId+1;
 
                 readBoards(store.boards, objects[1]);

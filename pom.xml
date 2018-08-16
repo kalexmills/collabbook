@@ -71,6 +71,7 @@
             <plugin>
                 <groupId>com.akathist.maven.plugins.launch4j</groupId>
                 <artifactId>launch4j-maven-plugin</artifactId>
+                <version>1.7.22</version>
                 <executions>
                     <execution>
                         <id>l4j-clui</id>
@@ -78,7 +79,7 @@
                         <goals><goal>launch4j</goal></goals>
                         <configuration>
                             <headerType>console</headerType>
-                            <outfile>target/tb.exe</outfile>
+                            <outfile>target/cb.exe</outfile>
                             <jar>${project.build.directory}/${project.build.finalName}.jar</jar>
                             <errTitle>tc</errTitle>
                             <classPath>
@@ -98,7 +99,7 @@
                                 <txtProductVersion>${project.version}</txtProductVersion>
                                 <productName>NAME</productName>
                                 <internalName>${project.build.finalName}</internalName>
-                                <originalFilename>tb.exe</originalFilename>
+                                <originalFilename>cb.exe</originalFilename>
                                 <language>ENGLISH</language>
                             </versionInfo>
                         </configuration>
