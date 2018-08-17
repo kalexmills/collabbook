@@ -12,6 +12,9 @@ import java.util.concurrent.Callable;
 
 import static org.niftysoft.collabbook.util.AnsiUtil.white;
 
+/**
+ * Command used to create an Item of a specified type. Subclassees must specify the type of item to be created.
+ */
 public abstract class ItemCreateCommand implements Callable<Void> {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;

@@ -1,12 +1,11 @@
 package org.niftysoft.collabbook;
 
 import org.fusesource.jansi.AnsiConsole;
-import org.niftysoft.collabbook.commands.CheckCommand;
-import org.niftysoft.collabbook.commands.NoteCommand;
-import org.niftysoft.collabbook.commands.TaskCommand;
+import org.niftysoft.collabbook.commands.*;
 import org.niftysoft.collabbook.model.Item;
 import org.niftysoft.collabbook.model.ItemStore;
 import org.niftysoft.collabbook.model.Task;
+import org.niftysoft.collabbook.util.AnsiUtil;
 import org.niftysoft.collabbook.util.ItemUtil;
 import org.niftysoft.collabbook.util.ResponseUtil;
 import picocli.CommandLine;
@@ -18,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import static org.niftysoft.collabbook.util.AnsiUtil.*;
 import static org.niftysoft.collabbook.util.ItemUtil.isTask;
@@ -54,7 +54,11 @@ public class Collabbook implements Callable<Void>  {
             CommandLine cmd = new CommandLine(new Collabbook(store))
                     .addSubcommand("task", new TaskCommand(store))
                     .addSubcommand("note", new NoteCommand(store))
-                    .addSubcommand("check", new CheckCommand(store));
+                    .addSubcommand("check", new CheckCommand(store))
+                    .addSubcommand("star", new StarCommand(store));
+
+            cmd.setUnmatchedArgumentsAllowed(true);
+            cmd.setUnmatchedOptionsArePositionalParams(true);
 
             List<Object> result = cmd.parseWithHandler(new RunAll(), args);
 
@@ -93,7 +97,7 @@ public class Collabbook implements Callable<Void>  {
             if (!items.isEmpty()) {
                 for (Item item : store.itemsInBoards(board)) {
                     view.getItemIdToViewId().put(item.getId(), i);
-                    view.getViewIdToItem().put(i++, item);
+                    view.getViewIdToItemId().put(i++, item.getId());
 
                     if (isTask(item)) {
                         if (((Task) item).isCompleted()) nComplete++;
@@ -116,9 +120,7 @@ public class Collabbook implements Callable<Void>  {
             showItemsInBoards(boards);
             showSummaryFooter();
         } else {
-            System.out.println();
             ResponseUtil.success("\\(^_^)/", "All done!");
-            System.out.println();
         }
     }
 
@@ -131,7 +133,7 @@ public class Collabbook implements Callable<Void>  {
                 int tasksInBoard = 0; int completeInBoard = 0;
                 for (Item item : store.itemsInBoards(board)) {
                     int viewId = view.getItemIdToViewId().get(item.getId());
-                    tasks.add("  " + grey(String.format("%4d.", viewId)) + " " + checkbox(item) + " " + description(item));
+                    tasks.add("  " + grey(String.format("%4d.", viewId)) + " " + checkbox(item) + " " + star(item) + description(item) + " " + star(item));
                 }
                 showBoardHeading(board, completeInBoard, tasksInBoard);
                 tasks.forEach(System.out::println);
@@ -155,6 +157,10 @@ public class Collabbook implements Callable<Void>  {
         System.out.println();
     }
 
+    private String star(Item i) {
+        return i.isStarred() ? yellow("** ") : "";
+    }
+
     private String checkbox(Item i) {
         return ItemUtil.processBySubclass(i,
                 (task) -> task.isCompleted() ? grey("[")+green("x")+grey("]") : grey("[ ]"),
@@ -163,9 +169,10 @@ public class Collabbook implements Callable<Void>  {
     }
 
     private String description(Item i) {
+        Function<String, String> yellowOrGrey = i.isStarred() ? AnsiUtil::yellow : AnsiUtil::white;
         return ItemUtil.processBySubclass(i,
-                (task) -> task.isCompleted() ? grey(task.getDescription()) : task.getDescription(),
-                (note) -> note.getDescription()
+                (task) -> task.isCompleted() ? grey(task.getDescription()) : yellowOrGrey.apply(task.getDescription()),
+                (note) -> yellowOrGrey.apply(note.getDescription())
         );
     }
 

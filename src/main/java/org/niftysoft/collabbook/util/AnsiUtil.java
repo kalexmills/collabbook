@@ -19,7 +19,7 @@ public class AnsiUtil {
     }
 
     public static String yellow(String str) {
-        return colorize(str, Ansi::fgYellow);
+        return colorize(str, Ansi::fgBrightYellow);
     }
 
     public static String red(String str) {
