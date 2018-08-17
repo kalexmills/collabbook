@@ -11,27 +11,23 @@ import static org.niftysoft.collabbook.util.AnsiUtil.grey;
 import static org.niftysoft.collabbook.util.AnsiUtil.white;
 
 
-@CommandLine.Command(description="Check/uncheck task", name="check", aliases={"c"},
+@CommandLine.Command(description="Delete item(s)", name="delete", aliases={"d", "del", "rm"},
         mixinStandardHelpOptions = true)
-public class CheckCommand extends ItemSequenceCommand {
+public class DeleteCommand extends ItemSequenceCommand {
 
-    public CheckCommand(ItemStore store) {
+    public DeleteCommand(ItemStore store) {
         super(store);
     }
 
     @Override
     protected void toggleParameter(long taskId) {
-        store.toggleTaskIsChecked(taskId);
+        store.deleteItem(taskId);
     }
 
 
     protected void reportSuccess(Collection<Integer> viewIdsSucceeded) {
-        ResponseUtil.success(":-)", white("Checked tasks: ")  + grey(joinIds(viewIdsSucceeded)));
+        ResponseUtil.success(":-)", white("Deleted tasks: ")  + grey(joinIds(viewIdsSucceeded)));
     }
 
-    protected void reportFailure(Collection<String> viewIdsTried) {
-        ResponseUtil.failure(">_<", white("Unable to find any task ids among parameters: " +
-                grey(String.join(", ", viewIdsTried))));
-    }
 }
 

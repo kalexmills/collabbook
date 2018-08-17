@@ -55,7 +55,8 @@ public class Collabbook implements Callable<Void>  {
                     .addSubcommand("task", new TaskCommand(store))
                     .addSubcommand("note", new NoteCommand(store))
                     .addSubcommand("check", new CheckCommand(store))
-                    .addSubcommand("star", new StarCommand(store));
+                    .addSubcommand("star", new StarCommand(store))
+                    .addSubcommand("delete", new DeleteCommand(store));
 
             cmd.setUnmatchedArgumentsAllowed(true);
             cmd.setUnmatchedOptionsArePositionalParams(true);
@@ -132,6 +133,11 @@ public class Collabbook implements Callable<Void>  {
                 List<String> tasks = new LinkedList<>();
                 int tasksInBoard = 0; int completeInBoard = 0;
                 for (Item item : store.itemsInBoards(board)) {
+                    if (item.getClass().equals(Task.class)) {
+                        tasksInBoard++;
+                        if (((Task)item).isCompleted()) completeInBoard++;
+                    }
+
                     int viewId = view.getItemIdToViewId().get(item.getId());
                     tasks.add("  " + grey(String.format("%4d.", viewId)) + " " + checkbox(item) + " " + star(item) + description(item) + " " + star(item));
                 }

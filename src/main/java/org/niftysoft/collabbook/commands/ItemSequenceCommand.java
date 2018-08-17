@@ -6,33 +6,36 @@ import org.niftysoft.collabbook.ViewModel;
 import org.niftysoft.collabbook.exceptions.ItemNotFoundException;
 import org.niftysoft.collabbook.exceptions.WrongTypeException;
 import org.niftysoft.collabbook.model.ItemStore;
+import org.niftysoft.collabbook.util.ResponseUtil;
 import picocli.CommandLine;
 
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
+import static org.niftysoft.collabbook.util.AnsiUtil.grey;
+import static org.niftysoft.collabbook.util.AnsiUtil.white;
+
 /**
  * Command allowing the user to toggle one parameter on a list of values.
  */
-public abstract class ItemToggleCommand implements Callable<Void> {
+public abstract class ItemSequenceCommand implements Callable<Void> {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
     @CommandLine.ParentCommand
     private Collabbook parent;
 
-    @CommandLine.Parameters(arity="1..*", description = "List of item identifiers.", paramLabel = "items")
-    Set<Integer> viewIds;
+    Set<Integer> viewIds = new HashSet<>();
 
-    @CommandLine.Unmatched
-    List<String> unmatched;
+    @CommandLine.Parameters(arity="1..*", description = "List of item identifiers and ranges.", paramLabel = "items")
+    List<String> idsAndRanges;
 
     protected ItemStore store;
 
     private ViewModel view;
 
-    public ItemToggleCommand(ItemStore store) {
+    public ItemSequenceCommand(ItemStore store) {
         this.store = store;
     }
 
@@ -43,7 +46,7 @@ public abstract class ItemToggleCommand implements Callable<Void> {
 
     @Override
     public Void call() {
-        if (unmatched != null) parseRangesFromUnmatchedParameters();
+        parseRanges();
 
         List<Integer> successfulIds = new ArrayList<>();
 
@@ -61,18 +64,20 @@ public abstract class ItemToggleCommand implements Callable<Void> {
         }
 
         if (successfulIds.isEmpty()) {
-            reportFailure(viewIds);
+            reportFailure(idsAndRanges);
         } else {
             reportSuccess(successfulIds);
         }
         return null;
     }
 
-    public void parseRangesFromUnmatchedParameters() {
-        for (String str : unmatched) {
+    public void parseRanges() {
+        for (String str : idsAndRanges) {
             String[] tokens = str.split("-");
-            if (tokens.length == 2) {
-                try {
+            try {
+                if (tokens.length == 1) {
+                    viewIds.add(Integer.valueOf(tokens[0]));
+                } else {
                     int low = Integer.valueOf(tokens[0]);
                     int high = Integer.valueOf(tokens[1]);
                     if (low > high) { int temp = low; low = high; high = temp; }
@@ -80,16 +85,19 @@ public abstract class ItemToggleCommand implements Callable<Void> {
                     for (int i = low; i <= high; ++i) {
                         viewIds.add(i);
                     }
-                } catch (NumberFormatException e) {
-                    ;; // ignore these silly parameters and move on with life
                 }
+            } catch (NumberFormatException e) {
+                ;; // ignore these silly parameters and move on with life
             }
         }
     }
 
     protected abstract void reportSuccess(Collection<Integer> viewIdsSucceeded);
 
-    protected abstract void reportFailure(Collection<Integer> viewIdsTried);
+    protected void reportFailure(Collection<String> paramsTried) {
+        ResponseUtil.failure(">_<", white("Unable to find any item id(s) among parameters: " +
+                grey(String.join(", ", paramsTried))));
+    }
 
     protected String joinIds(Collection<Integer> viewIds) {
         return String.join(", ", viewIds.stream()

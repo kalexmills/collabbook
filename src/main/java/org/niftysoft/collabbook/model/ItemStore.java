@@ -76,7 +76,10 @@ public class ItemStore {
      * @return Item the deleted item, or null if no item was deleted.
      */
     public Item deleteItem(long id) {
-        return items.remove(id);
+        if (!items.keySet().contains(id)) return null;
+        boards.values().forEach((board) -> board.remove(id));
+        boards.get(ARCHIVE_BOARD).add(id);
+        return items.get(id);
     }
 
     /**
@@ -266,11 +269,11 @@ public class ItemStore {
         }
 
         private static long readItems(SortedMap<Long, Item> items, String str) {
+            if (str.isEmpty()) return 0L;
             String[] itemTokens = str.split("---\\n");
 
             long maxId = 0L;
             for (String itemToken : itemTokens) {
-
                 Item item = readItem(itemToken);
                 maxId = Math.max(item.getId(), maxId);
                 items.put(item.getId(), item);
