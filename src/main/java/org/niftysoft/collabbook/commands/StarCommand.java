@@ -9,7 +9,6 @@ import java.util.Collection;
 import static org.niftysoft.collabbook.util.AnsiUtil.grey;
 import static org.niftysoft.collabbook.util.AnsiUtil.white;
 
-
 @CommandLine.Command(description="Star/unstar task", name="star", aliases={"s"},
         mixinStandardHelpOptions = true)
 public class StarCommand extends ItemSequenceCommand {

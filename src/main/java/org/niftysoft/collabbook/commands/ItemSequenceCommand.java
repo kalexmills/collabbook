@@ -2,7 +2,6 @@ package org.niftysoft.collabbook.commands;
 
 
 import org.niftysoft.collabbook.Collabbook;
-import org.niftysoft.collabbook.ViewModel;
 import org.niftysoft.collabbook.exceptions.ItemNotFoundException;
 import org.niftysoft.collabbook.exceptions.WrongTypeException;
 import org.niftysoft.collabbook.model.ItemStore;
@@ -20,20 +19,12 @@ import static org.niftysoft.collabbook.util.AnsiUtil.white;
  * Command allowing the user to toggle one parameter on a list of values.
  */
 public abstract class ItemSequenceCommand implements Callable<Void> {
-    @CommandLine.Spec
-    CommandLine.Model.CommandSpec spec;
-
-    @CommandLine.ParentCommand
-    private Collabbook parent;
-
-    Set<Integer> viewIds = new HashSet<>();
+    Set<Integer> itemIds = new HashSet<>();
 
     @CommandLine.Parameters(arity="1..*", description = "List of item identifiers and ranges.", paramLabel = "items")
     List<String> idsAndRanges;
 
     protected ItemStore store;
-
-    private ViewModel view;
 
     public ItemSequenceCommand(ItemStore store) {
         this.store = store;
@@ -50,14 +41,11 @@ public abstract class ItemSequenceCommand implements Callable<Void> {
 
         List<Integer> successfulIds = new ArrayList<>();
 
-        Map<Integer, Long> viewIdToItemId = parent.getView().getViewIdToItemId();
-        for (int viewId : viewIds) {
+        for (int itemId : itemIds) {
 
             try {
-                if (viewIdToItemId.containsKey(viewId)) {
-                    toggleParameter(viewIdToItemId.get(viewId));
-                    successfulIds.add(viewId);
-                }
+                toggleParameter(itemId);
+                successfulIds.add(itemId);
             } catch(ItemNotFoundException | WrongTypeException e) {
                 continue;
             }
@@ -76,14 +64,14 @@ public abstract class ItemSequenceCommand implements Callable<Void> {
             String[] tokens = str.split("-");
             try {
                 if (tokens.length == 1) {
-                    viewIds.add(Integer.valueOf(tokens[0]));
+                    itemIds.add(Integer.valueOf(tokens[0]));
                 } else {
                     int low = Integer.valueOf(tokens[0]);
                     int high = Integer.valueOf(tokens[1]);
                     if (low > high) { int temp = low; low = high; high = temp; }
 
                     for (int i = low; i <= high; ++i) {
-                        viewIds.add(i);
+                        itemIds.add(i);
                     }
                 }
             } catch (NumberFormatException e) {
