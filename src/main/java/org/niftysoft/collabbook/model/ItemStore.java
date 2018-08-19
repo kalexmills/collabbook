@@ -15,6 +15,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Stores items.
+ */
 public class ItemStore {
     public static final String DEFAULT_BOARD = "My Board";
     public static final String ARCHIVE_BOARD = "archive";
@@ -67,6 +70,9 @@ public class ItemStore {
         t.setCompleted(!t.isCompleted());
     }
 
+    /**
+     * @return Set<String> the set of boards.
+     */
     public Set<String> getBoards() {
         return Collections.unmodifiableSet(boards.keySet());
     }
@@ -85,22 +91,33 @@ public class ItemStore {
     /**
      * @return List of Items by date created
      */
-    public List<Item> listByDateCreated() {
-        List<Item> result = new ArrayList<>(items.values());
-        result.sort(Comparator.comparing((i) -> i.getDate()));
+    public List<Item> getActiveItems() {
+        List<Item> result = items.values().stream()
+            .filter((item) -> !boards.get(ARCHIVE_BOARD).contains(item.getId()))
+            .collect(Collectors.toList());
+
         return result;
     }
 
     /**
-     * @param boardArr String... board name(s)
+     * @param board String board
+     * @return List<Item> list of all items in the board.
+     */
+    public List<Item> itemsInBoard(String board) {
+        List<String> list = new ArrayList<>();
+        list.add(board);
+        return itemsInBoards(list);
+    }
+
+    /**
+     * @param boardList String... board name(s)
      * @return List<Item> the items contained in the requested board.
      * @throws BoardNotFoundException
      */
-    public List<Item> itemsInBoards(String... boardArr) throws BoardNotFoundException {
-        List<String> boardList = new LinkedList<String>(Arrays.asList(boardArr));
+    public List<Item> itemsInBoards(List<String> boardList) throws BoardNotFoundException {
         boardList.removeIf((board) -> !boards.keySet().contains(board));
         if (boardList.isEmpty())
-            throw new BoardNotFoundException(cmd, String.join(",", boardArr));
+            throw new BoardNotFoundException(cmd, String.join(",", boardList));
 
         return boardList.stream()
                 .map((board) -> boards.get(board))

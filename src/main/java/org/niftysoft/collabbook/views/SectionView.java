@@ -1,5 +1,9 @@
 package org.niftysoft.collabbook.views;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.niftysoft.collabbook.model.Item;
 import org.niftysoft.collabbook.model.ItemStore;
 import org.niftysoft.collabbook.model.Task;
@@ -7,62 +11,47 @@ import org.niftysoft.collabbook.util.AnsiUtil;
 import org.niftysoft.collabbook.util.ItemUtil;
 import org.niftysoft.collabbook.util.ResponseUtil;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
 import static org.niftysoft.collabbook.util.AnsiUtil.*;
-import static org.niftysoft.collabbook.util.ItemUtil.isTask;
+import static org.niftysoft.collabbook.util.AnsiUtil.grey;
+import static org.niftysoft.collabbook.util.AnsiUtil.white;
 
-public class TimelineView {
+public abstract class SectionView implements View{
 
-    private ItemStore store;
+    protected ItemStore store;
 
-    private int nComplete, nTasks, nNotes;
+    protected int nComplete, nTasks, nNotes;
 
-    private List<String> boards;
+    protected List<Section> sections;
 
-    public TimelineView(ItemStore store) {
+    public SectionView(ItemStore store) {
         this.store = store;
     }
 
     public void showView() {
-        this.boards = boards;
-        initializeView();
+        sections = initializeSections();
         // If no subcommand has been requested, show the present state of the tasks
-        if (!boards.isEmpty() && !store.itemsInBoards(boards.toArray(new String[0])).isEmpty()) {
+        if (!sections.isEmpty()) {
             System.out.println();
-            showItemsInBoards(boards);
+            showItemsInSections();
             showSummaryFooter();
         } else {
             ResponseUtil.success("\\(^_^)/", "All done!");
         }
     }
 
-    private void initializeView() {
-        for (String board : boards) {
-            List<Item> items = store.itemsInBoards(board);
-            if (!items.isEmpty()) {
-                for (Item item : store.itemsInBoards(board)) {
-                    if (isTask(item)) {
-                        if (((Task) item).isCompleted()) nComplete++;
-                        nTasks++;
-                    } else {
-                        nNotes++;
-                    }
-                }
-            }
-        }
-    }
+    protected abstract List<Section> initializeSections();
 
-    private void showItemsInBoards(List<String> boards) {
-        // TODO: Cleanup & make use of view properly.
-        for (String board : boards) {
-            List<Item> items = store.itemsInBoards(board);
-            if (!items.isEmpty()) {
+    private void showItemsInSections() {
+        for (Section section : sections) {
+            if (!section.items.isEmpty()) {
                 List<String> tasks = new LinkedList<>();
                 int tasksInBoard = 0; int completeInBoard = 0;
-                for (Item item : store.itemsInBoards(board)) {
+                for (Item item : section.items) {
                     if (item.getClass().equals(Task.class)) {
                         tasksInBoard++;
                         if (((Task)item).isCompleted()) completeInBoard++;
@@ -70,9 +59,13 @@ public class TimelineView {
                     tasks.add("  " + grey(String.format("%4d.", item.getId())) + " " + checkbox(item) + " " + star(item)
                             + description(item) + " " + star(item));
                 }
-                showBoardHeading(board, completeInBoard, tasksInBoard);
+                showBoardHeading(section.sectionHeading, completeInBoard, tasksInBoard);
                 tasks.forEach(System.out::println);
                 System.out.println();
+
+                nTasks += tasksInBoard;
+                nComplete += completeInBoard;
+                nNotes += tasks.size() - tasksInBoard;
             }
         }
     }
@@ -115,4 +108,12 @@ public class TimelineView {
         System.out.println("  " + white(board) + " " + grey("[" + complete + "/" + total + "]"));
     }
 
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Section{
+        @Getter @Setter
+        private String sectionHeading;
+        @Getter @Setter
+        private List<Item> items = new ArrayList<>();
+    }
 }

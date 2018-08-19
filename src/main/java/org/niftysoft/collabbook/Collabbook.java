@@ -4,6 +4,7 @@ import org.fusesource.jansi.AnsiConsole;
 import org.niftysoft.collabbook.commands.*;
 import org.niftysoft.collabbook.model.ItemStore;
 import org.niftysoft.collabbook.views.BoardView;
+import org.niftysoft.collabbook.commands.TimelineViewCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.*;
 
@@ -48,7 +49,8 @@ public class Collabbook implements Callable<Void>  {
                     .addSubcommand("note", new NoteCommand(store))
                     .addSubcommand("check", new CheckCommand(store))
                     .addSubcommand("star", new StarCommand(store))
-                    .addSubcommand("delete", new DeleteCommand(store));
+                    .addSubcommand("delete", new DeleteCommand(store))
+                    .addSubcommand("timeline",new TimelineViewCommand(store));
 
             cmd.setUnmatchedArgumentsAllowed(true);
             cmd.setUnmatchedOptionsArePositionalParams(true);
@@ -67,16 +69,15 @@ public class Collabbook implements Callable<Void>  {
     public Void call() {
         store.setCmdContext(cmd.commandLine());
 
-        defaultView = new BoardView(store);
-
         // First... compile the view. this object will be used by all other commands.
         List<String> boards = new ArrayList<>(store.getBoards());
 
-        boards.removeAll(Arrays.asList(ItemStore.ARCHIVE_BOARD, ItemStore.DEFAULT_BOARD));
+        boards.remove(ItemStore.ARCHIVE_BOARD);
+        boards.remove(ItemStore.DEFAULT_BOARD);
         boards.add(0, ItemStore.DEFAULT_BOARD);
 
         if (!cmd.commandLine().getParseResult().hasSubcommand()) {
-            defaultView.showView(boards);
+            new BoardView(store, boards).showView();
         }
         return null;
     }

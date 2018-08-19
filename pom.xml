@@ -11,8 +11,8 @@
 
     <properties>
         <windowsVersion>${project.version}.0</windowsVersion>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.9</maven.compiler.source>
+        <maven.compiler.target>1.9</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -89,6 +89,8 @@
                             </classPath>
                             <jre>
                                 <minVersion>1.8.0</minVersion>
+                                <initialHeapSize>32</initialHeapSize>
+                                <maxHeapSize>64</maxHeapSize>
                             </jre>
                             <versionInfo>
                                 <fileVersion>${windowsVersion}</fileVersion>
