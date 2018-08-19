@@ -2,9 +2,11 @@ package org.niftysoft.collabbook;
 
 import org.fusesource.jansi.AnsiConsole;
 import org.niftysoft.collabbook.commands.*;
+import org.niftysoft.collabbook.exceptions.ItemNotFoundException;
 import org.niftysoft.collabbook.model.ItemStore;
+import org.niftysoft.collabbook.util.ResponseUtil;
 import org.niftysoft.collabbook.views.BoardView;
-import org.niftysoft.collabbook.commands.TimelineViewCommand;
+import org.niftysoft.collabbook.commands.ViewTimelineCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.*;
 
@@ -50,7 +52,9 @@ public class Collabbook implements Callable<Void>  {
                     .addSubcommand("check", new CheckCommand(store))
                     .addSubcommand("star", new StarCommand(store))
                     .addSubcommand("delete", new DeleteCommand(store))
-                    .addSubcommand("timeline",new TimelineViewCommand(store));
+                    .addSubcommand("timeline", new TimelineCommand(store))
+                    .addSubcommand("archive", new ArchiveCommand(store))
+                    .addSubcommand("edit", new EditCommand(store));
 
             cmd.setUnmatchedArgumentsAllowed(true);
             cmd.setUnmatchedOptionsArePositionalParams(true);
@@ -59,7 +63,9 @@ public class Collabbook implements Callable<Void>  {
 
             ItemStore.ItemStoreFileWriter.writeItemStore(store, FILESTORE_PATH);
 
-        } finally {
+        } catch(ItemNotFoundException e) {
+            ResponseUtil.failure(">_<", "Could not find item with id "+ e.getId());
+        } finally{
             AnsiConsole.systemUninstall();
         }
         System.exit(0);

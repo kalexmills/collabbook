@@ -46,6 +46,15 @@ public class ItemStore {
     }
 
     /**
+     * @param id long item id
+     * @return Item the item
+     */
+    public Item get(long id) throws ItemNotFoundException {
+        if (!items.containsKey(id)) throw new ItemNotFoundException(cmd, id);
+        return items.get(id);
+    }
+
+    /**
      * Toggles the value of isStarred on an item.
      * @param id long id of item to star
      * @throws ItemNotFoundException if no item with id is found.

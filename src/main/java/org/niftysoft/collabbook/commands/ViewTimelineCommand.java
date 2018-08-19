@@ -15,16 +15,16 @@ import java.util.concurrent.Callable;
 
 import static java.util.stream.Collectors.groupingBy;
 
-@CommandLine.Command(description="Timeline view", name="timeline", aliases={"ti", "i", "time"},
-        mixinStandardHelpOptions = true)
-public class TimelineViewCommand extends SectionView implements Callable<Void> {
+public class ViewTimelineCommand extends SectionView implements Callable<Void> {
 
-    public TimelineViewCommand(ItemStore store) {
+    private List<Item> items;
+
+    public ViewTimelineCommand(ItemStore store, List<Item> itemsInTimelineView) {
         super(store);
+        this.items = itemsInTimelineView;
     }
 
     protected List<Section> initializeSections() {
-        List<Item> items = store.getActiveItems();
         Map<LocalDate, List<Item>> itemsByDate = items.stream()
                 .collect(groupingBy((Item item) -> item.getDate().toLocalDate()));
 

@@ -1,6 +1,5 @@
 package org.niftysoft.collabbook.commands;
 
-import org.niftysoft.collabbook.Collabbook;
 import org.niftysoft.collabbook.model.Item;
 import org.niftysoft.collabbook.model.ItemStore;
 import org.niftysoft.collabbook.util.DescriptionUtil;
@@ -18,9 +17,6 @@ import static org.niftysoft.collabbook.util.AnsiUtil.white;
 public abstract class ItemCreateCommand implements Callable<Void> {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
-
-    @CommandLine.ParentCommand
-    private Collabbook parent;
 
     @CommandLine.Parameters(arity="1..*", description = "Item description.", paramLabel = "description")
     String[] description;
