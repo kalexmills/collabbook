@@ -1,0 +1,63 @@
+1
+T
+F
+F
+2018-08-20T16:08:10.09
+Add directory-walking feature.
+---
+2
+T
+F
+F
+2018-08-20T16:08:16.995
+Add restore command.
+---
+3
+T
+F
+F
+2018-08-20T16:08:23.009
+Add find command.
+---
+4
+T
+F
+F
+2018-08-20T16:08:30.437
+Add attribute command.
+---
+5
+T
+F
+F
+2018-08-20T16:08:45.622
+ Integrate with nailgun or drip.
+---
+6
+T
+F
+F
+2018-08-20T16:09:15.216
+Port to go.
+---
+7
+T
+T
+F
+2018-08-20T16:09:23.92
+Dogfood by using .collabbook in this repo.
+---
+=====
+@wontfix
+5
+---
+My Board
+1
+2
+3
+4
+6
+7
+---
+archive
+---
