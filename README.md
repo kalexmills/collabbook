@@ -9,5 +9,5 @@
 
 ### Known Issues
 * Unacceptable performance (~2 secs) due to JVM startup overhead.
-  * A [golang](https://golang.org) port / rewrite is planned, to enable the lightning-fast performance that comes from native compilation.
+  * A [golang](https://golang.org) port / rewrite is [in progress](https://github.com/kalexmills/collabbook-go), to enable the lightning-fast performance that comes from native compilation.
   * Integration with [nailgun](https://github.com/facebook/nailgun) or [drip](https://github.com/ninjudd/drip) are other options, for those who don't mind semi-persistent background JVMs.
